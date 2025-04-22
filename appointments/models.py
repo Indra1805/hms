@@ -1,8 +1,9 @@
 from django.db import models
-from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 from datetime import timedelta
 from django.db.models import Max
+from patients.models import Patient, Invoice
 
 # create your appointments models here
 
@@ -28,6 +29,7 @@ class Appointment(models.Model):
         O_NEGATIVE = 'O-', _('O-')
 
     appointment_id = models.CharField(max_length=10, unique=True, editable=False)
+    patient = models.ForeignKey(Patient, on_delete=models.CASCADE, null=True, blank=True)
     patient_name = models.CharField(max_length=100)
     doctor_name = models.CharField(max_length=100)
     date = models.DateField()
@@ -36,10 +38,10 @@ class Appointment(models.Model):
     appointment_type = models.CharField(max_length=20, choices=AppointmentStatus.choices)
     notes = models.TextField(blank=True)
     gender = models.CharField(max_length=20, choices=GenderStatus.choices)
-    phno = models.CharField(max_length=10, unique=True)
-    email = models.EmailField(unique=True)
+    phno = models.CharField(max_length=10)
+    email = models.EmailField()
     blood_group = models.CharField(max_length=3, choices=BloodGroupChoices.choices, null=True, blank=True)
-    billing = models.ForeignKey('patients.Invoice', on_delete=models.CASCADE, null=True, blank=True)
+    billing = models.ForeignKey(Invoice, on_delete=models.CASCADE, null=True, blank=True)
     ward_no = models.CharField(max_length=10, null=True, blank=True)
     diagnosis = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)

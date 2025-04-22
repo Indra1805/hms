@@ -271,3 +271,23 @@ Update-Risk-Factor
         }
     ]
 }
+
+
+
+
+{
+  "patient_name": "Rahul Sharma",
+  "doctor_name": "Dr. Neha Kapoor",
+  "date": "2025-04-23",
+  "time": "14:30:00",
+  "age": 32,
+  "appointment_type": "inpatient",
+  "notes": "Patient is experiencing high fever and fatigue.",
+  "gender": "male",
+  "phno": "9876543210",
+  "email": "rahul@example.com",
+  "blood_group": "B+",
+  "billing": 1,
+  "ward_no": "12B",
+  "diagnosis": "Suspected viral infection"
+}
