@@ -86,6 +86,7 @@ class MedicalRecordCreateAPIView(APIView):
 
         try:
             patient_id = request.data.get("patient_id")
+            print("Incoming patient:", request.data.get('patient'))
             record_type = request.data.get("record_type")
             report = request.FILES.get("report")
             print(request.data)

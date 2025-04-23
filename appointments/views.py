@@ -76,17 +76,19 @@ class AppointmentCreateAPIView(APIView):
             )
 
             serializer = serializers.AppointmentSerializer(appointment, context={"request": request})
-
             inpatients = models.Appointment.objects.filter(appointment_type='inpatient').count()
             outpatients = models.Appointment.objects.filter(appointment_type='outpatient').count()
             casualty = models.Appointment.objects.filter(appointment_type='casuality').count()
+
+            total_active_cases = inpatients + outpatients + casualty
 
             context["data"] = {
                 "appointment": serializer.data,
                 "active_cases": {
                     "inpatients": inpatients,
                     "outpatients": outpatients,
-                    "casualty": casualty
+                    "casualty": casualty,
+                    "total": total_active_cases
                 }
             }
 
@@ -119,6 +121,7 @@ class AppointmentRetrieveAPIView(APIView):
             inpatients = models.Appointment.objects.filter(appointment_type='inpatient').count()
             outpatients = models.Appointment.objects.filter(appointment_type='outpatient').count()
             casualty = models.Appointment.objects.filter(appointment_type='casuality').count()
+            total_active_cases = inpatients + outpatients + casualty
 
             total_doctors = DoctorAvailability.objects.count()
             todays_appointments = models.Appointment.objects.filter(date=today).count()
@@ -135,7 +138,8 @@ class AppointmentRetrieveAPIView(APIView):
                     "active_cases": {
                         "inpatients": inpatients,
                         "outpatients": outpatients,
-                        "casualty": casualty
+                        "casualty": casualty,
+                        "total": total_active_cases
                     },
                     "total_appointments": total_appointments
                 }
@@ -197,6 +201,7 @@ class AppointmentListAPIView(APIView):
             inpatients = models.Appointment.objects.filter(appointment_type='inpatient').count()
             outpatients = models.Appointment.objects.filter(appointment_type='outpatient').count()
             casualty = models.Appointment.objects.filter(appointment_type='casuality').count()
+            total_active_cases = inpatients + outpatients + casualty
 
             total_doctors = DoctorAvailability.objects.count()
             todays_appointments = models.Appointment.objects.filter(date=today).count()
@@ -214,7 +219,8 @@ class AppointmentListAPIView(APIView):
                     "active_cases": {
                         "inpatients": inpatients,
                         "outpatients": outpatients,
-                        "casualty": casualty
+                        "casualty": casualty,
+                        "total": total_active_cases
                     },
                     "total_appointments": total_appointments
                 }
