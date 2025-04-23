@@ -188,6 +188,8 @@ class AppointmentListAPIView(APIView):
                 queryset = queryset.filter(date=date_param)
 
             # Predefined filters
+            if not filter_type or filter_type == 'today':
+                queryset = queryset.filter(date=today)
             if filter_type == 'upcoming_week':
                 next_week = today + timedelta(days=7)
                 queryset = queryset.filter(date__range=[today, next_week])
