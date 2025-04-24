@@ -4,6 +4,7 @@ from django.utils.translation import gettext_lazy as _
 from datetime import timedelta
 from django.db.models import Max
 from patients.models import Patient, Invoice
+from doctors.models import DoctorAvailability
 
 # create your appointments models here
 
@@ -31,7 +32,7 @@ class Appointment(models.Model):
     appointment_id = models.CharField(max_length=10, unique=True, editable=False)
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE, null=True, blank=True)
     patient_name = models.CharField(max_length=100)
-    doctor_name = models.CharField(max_length=100)
+    doctor = models.ForeignKey(DoctorAvailability, on_delete=models.CASCADE)
     date = models.DateField()
     time = models.TimeField()
     age = models.IntegerField()

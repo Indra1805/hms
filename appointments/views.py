@@ -38,6 +38,11 @@ class AppointmentCreateAPIView(APIView):
                 (Q(phno=req_params["phno"]) & Q(patient_name__iexact=req_params["patient_name"])) |
                 (Q(email=req_params["email"]) & Q(patient_name__iexact=req_params["patient_name"]))
             ).first()
+
+            doctor = models.DoctorAvailability.objects.filter(d_name__iexact=req_params["doctor"].first())
+
+            if not doctor:
+                raise Exception("Doctor not found")
  
             if not patient:
                 patient = models.Patient.objects.create(
@@ -60,7 +65,7 @@ class AppointmentCreateAPIView(APIView):
             appointment = models.Appointment.objects.create(
                 patient=patient,
                 patient_name=req_params["patient_name"],
-                doctor_name=req_params["doctor_name"],
+                doctor=doctor,
                 date=req_params["date"],
                 time=req_params["time"],
                 age=req_params["age"],

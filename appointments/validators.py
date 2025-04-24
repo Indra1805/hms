@@ -6,7 +6,7 @@ from patients import models
 
 class AppointmentValidator(serializers.Serializer):
     patient_name = serializers.CharField()
-    doctor_name = serializers.CharField()
+    doctor = serializers.CharField()
     date = serializers.DateField()
     time = serializers.TimeField()
     age = serializers.IntegerField()
