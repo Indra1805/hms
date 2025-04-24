@@ -232,10 +232,72 @@ class AppointmentListAPIView(APIView):
             }
  
         except Exception as e:
-            import traceback
-            traceback.print_exc()
+            # import traceback
+            # traceback.print_exc()
             context["success"] = 0
             context["message"] = str(e)
             return Response(context, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
  
         return Response(context, status=status.HTTP_200_OK)
+    
+
+class AppointmentRescheduleAPIView(APIView):
+    def post(self, request, appointment_id):
+        context = {
+            "success":1,
+            "message":"Appointment rescheduled successfully",
+            "data":{}
+        }
+
+        try:
+            appointment = get_object_or_404(models.Appointment, appointment_id=appointment_id)
+
+            new_date = request.data.get("date")
+            new_time = request.data.get("time")
+
+            if not new_date or not new_time:
+                context["success"] = 0
+                context["message"] = "Both 'date' and 'time' are required to reschedule"
+                return Response(context,status=status.HTTP_400_BAD_REQUEST)
+            
+            appointment.date = new_date
+            appointment.time = new_time
+            appointment.save()
+
+            serializer = app_serializers.AppointmentSerializer(appointment,context={"request":request})
+            context["data"]=serializer.data
+
+        except Exception as e:
+            context["success"] = 0
+            context["message"] = str(e)
+            return Response(context, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        return Response(context, status=status.HTTP_200_OK)
+
+
+class AppointmentCancelAPIView(APIView):
+    def post(self, request, appointment_id):
+        context = {
+            "success":1,
+            "message":"Appointment cancelled successfully",
+            "data":{}
+        }
+
+        try:
+            appointment = get_object_or_404(models.Appointment, appointment_id=appointment_id)
+
+            if not appointment:
+                raise ValidationError("Appointment already cancelled.")
+            else:
+                appointment.delete()
+            
+            serializer = app_serializers.AppointmentSerializer(appointment, context={'request':request})
+            context["data"] = {
+                "appointment":serializer.data
+            }
+        except Exception as e:
+            context["success"] = 0
+            context["message"] = str(e)
+            return Response(context, status=status.HTTP_400_BAD_REQUEST)
+        return Response(context, status=status.HTTP_200_OK)
+    

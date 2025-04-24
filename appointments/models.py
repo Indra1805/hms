@@ -46,8 +46,8 @@ class Appointment(models.Model):
     diagnosis = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    def can_update(self):
-        return timezone.now() <= self.created_at + timedelta(hours=30)
+    # def can_update(self):
+    #     return timezone.now() <= self.created_at + timedelta(hours=30)
 
     def save(self, *args, **kwargs):
         if not self.appointment_id:
