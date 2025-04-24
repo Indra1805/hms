@@ -142,7 +142,7 @@ class GetPatientAPIView(APIView):
         return Response(context)
 
 class PatientUpdateAPIView(APIView):
-    def get(self, request, pk=None):
+    def get(self, request, patient_id):
         """Fetch existing patient details before updating."""
         context = {
             "success": 1,
@@ -150,7 +150,7 @@ class PatientUpdateAPIView(APIView):
             "data": {}
         }
         try:
-            patient = models.Patient.objects.get(id=pk)
+            patient = models.Patient.objects.get(patient_id=patient_id)
             patient_serializer = serializers.PatientSerializer(patient)
             context['data'] = patient_serializer.data
 
@@ -164,7 +164,7 @@ class PatientUpdateAPIView(APIView):
 
         return Response(context)
 
-    def put(self, request, pk=None):
+    def put(self, request, patient_id):
         """Update patient details and refresh patient count"""
         context = {
             "success": 1,
@@ -172,7 +172,7 @@ class PatientUpdateAPIView(APIView):
             "data": {}
         }
         try:
-            patient = models.Patient.objects.get(id=pk)
+            patient = models.Patient.objects.get(patient_id=patient_id)
 
             if not patient.can_update():
                 context['success'] = 0
