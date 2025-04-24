@@ -18,7 +18,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
             'doctor_id', 'doctor_name', 'department',
             'date', 'time', 'age', 'appointment_type',
             'notes', 'gender', 'phno', 'email',
-            'blood_group', 'ward_no', 'diagnosis', 'created_at'
+            'blood_group', 'created_at'
         ]
  
  

@@ -30,7 +30,7 @@ class AppointmentCreateAPIView(APIView):
         try:
             validator = validators.AppointmentValidator(data=request.data)
             if not validator.is_valid():
-                raise serializers.ValidationError(validator.errors)
+                raise ValidationError(validator.errors)
  
             req_params = validator.validated_data
  
@@ -39,7 +39,7 @@ class AppointmentCreateAPIView(APIView):
                 (Q(email=req_params["email"]) & Q(patient_name__iexact=req_params["patient_name"]))
             ).first()
 
-            doctor = models.DoctorAvailability.objects.filter(d_name__iexact=req_params["doctor"].first())
+            doctor = models.DoctorAvailability.objects.filter(d_name__iexact=req_params["doctor"]).first()
 
             if not doctor:
                 raise Exception("Doctor not found")
@@ -47,7 +47,7 @@ class AppointmentCreateAPIView(APIView):
             if not patient:
                 patient = models.Patient.objects.create(
                     patient_name=req_params["patient_name"],
-                    doctor_name=req_params["doctor_name"],
+                    doctor_name=req_params["doctor"],
                     date=req_params["date"],
                     time=req_params["time"],
                     age=req_params["age"],
@@ -57,7 +57,6 @@ class AppointmentCreateAPIView(APIView):
                     phno=req_params["phno"],
                     email=req_params["email"],
                     blood_group=req_params.get("blood_group"),
-                    billing=req_params.get("billing"),
                     ward_no=req_params.get("ward_no"),
                     diagnosis=req_params.get("diagnosis"),
                 )
@@ -75,9 +74,6 @@ class AppointmentCreateAPIView(APIView):
                 phno=req_params["phno"],
                 email=req_params["email"],
                 blood_group=req_params.get("blood_group"),
-                billing=req_params.get("billing"),
-                ward_no=req_params.get("ward_no"),
-                diagnosis=req_params.get("diagnosis"),
             )
  
             serializer = serializers.AppointmentSerializer(appointment, context={"request": request})
@@ -237,8 +233,8 @@ class AppointmentListAPIView(APIView):
             }
  
         except Exception as e:
-            # import traceback
-            # traceback.print_exc()
+            import traceback
+            traceback.print_exc()
             context["success"] = 0
             context["message"] = str(e)
             return Response(context, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -3,7 +3,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from datetime import timedelta
 from django.db.models import Max
-from patients.models import Patient, Invoice
+from patients.models import Patient
 from doctors.models import DoctorAvailability
 
 # create your appointments models here
@@ -42,13 +42,8 @@ class Appointment(models.Model):
     phno = models.CharField(max_length=10)
     email = models.EmailField()
     blood_group = models.CharField(max_length=3, choices=BloodGroupChoices.choices, null=True, blank=True)
-    billing = models.ForeignKey(Invoice, on_delete=models.CASCADE, null=True, blank=True)
-    ward_no = models.CharField(max_length=10, null=True, blank=True)
-    diagnosis = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    # def can_update(self):
-    #     return timezone.now() <= self.created_at + timedelta(hours=30)
 
     def save(self, *args, **kwargs):
         if not self.appointment_id:

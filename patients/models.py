@@ -1,13 +1,11 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-from datetime import timedelta,timezone
 from django.db.models import Max
+from django.utils import timezone
+from datetime import timedelta
+
 
 # Create your models here.
-
-
-class Invoice(models.Model):
-    amount = models.IntegerField()
 
 class Patient(models.Model):
     class AppointmentStatus(models.TextChoices):
@@ -45,7 +43,6 @@ class Patient(models.Model):
     phno = models.CharField(max_length=10)
     email = models.EmailField()
     blood_group = models.CharField(max_length=3,choices=BloodGroupChoices.choices,null=True,blank=True)
-    billing = models.ForeignKey(Invoice,on_delete=models.CASCADE , null=True, blank=True)
     ward_no = models.CharField(max_length=10,null=True,blank=True)
     diagnosis = models.TextField(blank=True,null=True)
     created_at = models.DateTimeField(auto_now_add=True)

@@ -16,6 +16,3 @@ class AppointmentValidator(serializers.Serializer):
     phno = serializers.CharField()
     email = serializers.EmailField()
     blood_group = serializers.ChoiceField(choices=Appointment.BloodGroupChoices.choices, required=False)
-    billing = serializers.PrimaryKeyRelatedField(queryset=models.Invoice.objects.all(), required=False)
-    ward_no = serializers.CharField(required=False, allow_blank=True)
-    diagnosis = serializers.CharField(required=False, allow_blank=True)

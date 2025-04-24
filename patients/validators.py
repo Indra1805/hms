@@ -2,53 +2,7 @@ import re
 from rest_framework import serializers
 from django.core.validators import RegexValidator,MinLengthValidator,MaxLengthValidator,EmailValidator
 
-
-class VitalsValidator(serializers.Serializer):
-    temp = serializers.CharField(required = True ,allow_null = False, allow_blank=False, max_length= 5, error_messages = {
-        "required ": "Temperature is a required field.",
-        "null" : "Temperature connot be null.",
-        "blank": " Temperature connot be empty.",
-        "max_length": "Temperature connot exceed 5 characters."
-
-    })
-
-    blood = serializers.CharField(required=True, allow_null = False, allow_blank = False, max_length= 7, error_messages={
-        "required": "Blood pressure is a required field.",
-        "null": "Blood pressure cannot be null.",
-        "blank": "Blood pressure cannot be empty.",
-        "max_length": "Blood pressure cannot exceed 7 characters."
-    })
-
-    heartrate = serializers.CharField(required=True, allow_null=False, allow_blank=False, max_length=7, error_messages={
-        "required": "Heart rate is a required field.",
-        "null": "Heart rate cannot be null.",
-        "blank": "Heart rate cannot be empty.",
-        "max_length": "Heart rate cannot exceed 7 characters."
-    })
-
-    oxygen = serializers.CharField(required=True, allow_null=False, allow_blank=False, max_length=3, error_messages={
-        "required": "Oxygen level is a required field.",
-        "null": "Oxygen level cannot be null.",
-        "blank": "Oxygen level cannot be empty.",
-        "max_length": "Oxygen level cannot exceed 3 characters."
-    })
-
-
-class  RecordsValidator(serializers.Serializer):
-    history = serializers.FileField(required = True, error_messages ={
-        "required ": "History file is a required field."   
-    })
-
-    status = serializers.ChoiceField(choices=[ 'critical','serious', 'moderate', 'mild', 'stable', 'improving', 'recover', 'unknown', 'positive'], required=True , error_messages={
-        "required": "Condition status is a required field."        
-    })
-
-class InvoiceValidator(serializers.Serializer):
-    amount = serializers.IntegerField(required=True, error_messages={
-        "required": "Amount is a required field.",
-        "invalid": "Amount must be an integer."
-    })
-
+# create your patients serializers here
 
 phone_no_validator=[
     MinLengthValidator(10, message = "Phone number must be 10 digits."),
