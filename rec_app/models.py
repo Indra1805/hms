@@ -1,14 +1,8 @@
 from django.db import models
 from patients.models import Patient
-
+from doctors.models import DoctorAvailability
 
 # create your models here
-
-class StaffUsers(models.Model):
-    name = models.CharField(max_length=50)
-
-    def __str__(self):
-        return self.name
 
 # Models for adding rceords
 
@@ -22,6 +16,7 @@ class MedicalRecord(models.Model):
     ]
     
     record_type = models.CharField(max_length=50, choices=RECORD_TYPES)
+    last_updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         abstract = True  # Abstract Model
@@ -41,52 +36,83 @@ class Vitals(MedicalRecord):
     summary = models.TextField(blank=True)
     report = models.FileField(upload_to='reports/',null=True,blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    last_updated_at = models.DateTimeField(auto_now=True)
+    
 
-class LabResult(MedicalRecord):
-    patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='lab_results')
-    doctor = models.ForeignKey(StaffUsers,on_delete=models.CASCADE)
-    title = models.CharField(max_length=255)
-    category = models.CharField(max_length=255,blank=True)
-    summary = models.TextField(blank=True)
-    report = models.FileField(upload_to='reports/',null=True,blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    last_updated_at = models.DateTimeField(auto_now=True)
+# class LabResult(MedicalRecord):
+#     PRIORITY_CHOICES = [
+#         ('Urgent', 'Urgent'),
+#         ('Normal', 'Normal'),     
+#     ]
+
+#     STATUS_CHOICES = [
+#         ('Pending', 'Pending'),
+#         ('inprogress', 'In Progress'),
+#         ('Completed', 'Completed'),
+#     ]
+
+#     patient_id = models.CharField(max_length=100)
+#     patient_name = models.CharField(max_length=255)
+#     requested_test = models.CharField(max_length=255)
+#     requested_by = models.CharField(max_length=255)
+#     request_date = models.DateField()
+#     priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='pending')
+#     status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='pending')
+#     notes = models.TextField(blank=True, null=True)
+
+#     user_id = models.CharField(max_length=10)  
+#     username = models.CharField(max_length=150)
+
+#     test_date = models.DateField(blank=True, null=True)
+#     test_time = models.TimeField(blank=True, null=True)
+#     summary = models.TextField(blank=True, null=True)
+#     test_type = models.CharField(max_length=100, blank=True, null=True)
+#     flag = models.BooleanField(default=False)
+
+#     report = models.FileField(upload_to='reports/', blank=True, null=True)
+
+#     def __str__(self):
+#         return f"LabTest for {self.patient_name} ({self.requested_test})"
 
 
 
-class Imaging(MedicalRecord):
-    patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='imaging_records')
-    doctor = models.ForeignKey(StaffUsers, on_delete=models.CASCADE, related_name="imaging")
-    scan_type = models.CharField(max_length=100)
-    category = models.CharField(max_length=255,blank=True)
-    summary = models.TextField(blank=True)
-    report = models.FileField(upload_to='reports/',null=True,blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    last_updated_at = models.DateTimeField(auto_now=True)
+# class Imaging(MedicalRecord):
+#     patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='imaging_records')
+#     # doctor = models.ForeignKey(DoctorAvailability, on_delete=models.CASCADE, related_name="imaging")
+#     scan_type = models.CharField(max_length=100)
+#     category = models.CharField(max_length=255,blank=True)
+#     summary = models.TextField(blank=True)
+#     report = models.FileField(upload_to='reports/',null=True,blank=True)
+#     created_at = models.DateTimeField(auto_now_add=True)
+    
 
 class Prescription(MedicalRecord):
+    STATUS_CHOICES = [
+        ('processing','Processing'),
+        ('completed','Completed'),
+        ('pending','Pending')
+    ]
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='prescriptions')
-    doctor = models.ForeignKey(StaffUsers, on_delete=models.CASCADE, related_name="prescriptions")
+    # doctor = models.ForeignKey(DoctorAvailability, on_delete=models.CASCADE, related_name="prescriptions")
     medication_name = models.CharField(max_length=100)
     dosage = models.CharField(max_length=50)
+    quantity = models.IntegerField(null=True, blank=True)
     duration = models.CharField(max_length=50)
     category = models.CharField(max_length=255,blank=True)
     summary = models.TextField(blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='processing')
     report = models.FileField(upload_to='reports/',null=True,blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    last_updated_at = models.DateTimeField(auto_now=True)
+    
 
 class ServiceProcedure(MedicalRecord):
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='service_procedures')
-    doctor = models.ForeignKey(StaffUsers, on_delete=models.CASCADE, related_name="procedures")
-    procedure_name = models.CharField(max_length=100)
-    procedure_notes = models.TextField()
+    # doctor = models.ForeignKey(DoctorAvailability, on_delete=models.CASCADE, related_name="procedures")
+    title = models.CharField(max_length=100)
     category = models.CharField(max_length=255,blank=True)
     summary = models.TextField(blank=True)
     report = models.FileField(upload_to='reports/',null=True,blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    last_updated_at = models.DateTimeField(auto_now=True)
+    
 
 
 # Models for adding note

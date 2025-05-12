@@ -1,7 +1,4 @@
 from django.shortcuts import render
-
-# Create your views here.
-
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from datetime import datetime, timedelta
@@ -9,75 +6,197 @@ from django.utils.timezone import now
 from rest_framework import status
 from django.shortcuts import get_object_or_404
 from rest_framework.exceptions import ValidationError
-from .models import *
+from .models import DoctorAvailability
 from .serializers import DoctorAvailabilitySerializer
 from .serializers import AvailableSlotsSerializer
 from django.db.models import Q
 from django.core.cache import cache
+from patients.models import Patient
+from doctors.models import Department
+from appointments.models import Appointment
+
+# create your views here
 
 
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from datetime import datetime, timedelta
-from django.utils.timezone import now
-from rest_framework import status
-from django.shortcuts import get_object_or_404
-from .models import DoctorAvailability
-from .serializers import DoctorAvailabilitySerializer
-
-class DoctorAvailabilityAPIView(APIView):
-    def get(self, request, pk=None, doctor_id=None):
-        """Fetch doctor details along with available slots"""
-
-        # doctors_count = DoctorAvailability.objects.count()
+class DoctorAvailabilityListView(APIView):
+    def get(self, request):
         context = {
             "success": 1,
             "message": "Data fetched successfully.",
             "data": {},
-            # "d_count": doctors_count,
+            "total_doctors": 0
+        }
+
+        try:
+            doctors = DoctorAvailability.objects.all()
+            patients = Patient.objects.all()
+            specialities = Department.objects.all()
+            
+            context["total_doctors"] = doctors.count()
+            context["total_patients"] = patients.count()
+            context["expertise"] = specialities.count()
+
+            if not doctors.exists():
+                return Response({"error": "No doctors found"}, status=status.HTTP_404_NOT_FOUND)
+
+            doctor_data = []
+            for doctor in doctors:
+                slots = self.get_available_slots(doctor)
+                patient_count = Patient.objects.filter(doctor_name=doctor).values('patient_name').distinct().count()
+                doctor_data.append({
+                    "d_id": doctor.d_id,
+                    "d_name": doctor.d_name,
+                    "d_department": str(doctor.d_department),
+                    "d_phn_no": doctor.d_phn_no,
+                    "d_email": doctor.d_email,
+                    "d_ward_no": doctor.d_ward_no,
+                    "d_start_time": doctor.d_start_time.strftime('%I:%M %p'),
+                    "d_end_time": doctor.d_end_time.strftime('%I:%M %p'),
+                    "d_education_info": doctor.d_education_info,
+                    "d_certifications": doctor.d_certifications,
+                    "d_available_days": doctor.d_available_days,
+                    "d_available_slots": slots,
+                    "patient_count":patient_count
+                })
+
+            context["data"] = doctor_data
+        except Exception as e:
+            return Response({"error": "An error occurred", "details": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response(context, status=status.HTTP_200_OK)
+
+    def get_available_slots(self, doctor):
+        today = now().date()
+        current_day = today.strftime('%A')
+
+        # Check if doctor is available today
+        if current_day not in doctor.d_available_days:
+            return []
+
+        start_time = datetime.combine(today, doctor.d_start_time)
+        end_time = datetime.combine(today, doctor.d_end_time)
+
+        if doctor.d_start_time > doctor.d_end_time:
+            end_time += timedelta(days=1)
+
+        # Fetch today's appointments for the doctor
+        appointments = Appointment.objects.filter(
+            doctor=doctor,
+            date=today
+        ).values_list('time', flat=True)
+
+        # Convert appointment times to a set of formatted time strings
+        appointment_times = set([t.strftime('%I:%M %p') for t in appointments])
+
+        slots = []
+        hours_worked = 0
+        current = start_time
+
+        while current < end_time:
+            time_str = current.strftime('%I:%M %p')
+            if hours_worked > 0 and hours_worked % 4 == 0:
+                slots.append({"time": time_str, "status": "Break"})
+                current += timedelta(hours=1)
+                hours_worked = 0
+                continue
+
+            status_str = "Scheduled" if time_str in appointment_times else "Available"
+            slots.append({"time": time_str, "status": status_str})
+            current += timedelta(hours=1)
+            hours_worked += 1
+
+        return slots
+
+
+# class DoctorAvailabilityListView(APIView):
+#     def get(self, request):
+#         context = {
+#             "success": 1,
+#             "message": "Data fetched successfully.",
+#             "data": {},
+#             "total_doctors": 0
+#         }
+
+#         try:
+#             doctors = DoctorAvailability.objects.all()
+#             patients = Patient.objects.all()
+#             specialities = Department.objects.all()
+#             context["total_doctors"] = doctors.count()
+#             context["total_patients"] = patients.count()
+#             context["expertise"] = specialities.count()
+
+#             if not doctors:
+#                 return Response({"error": "No doctors found"}, status=status.HTTP_404_NOT_FOUND)
+
+#             doctor_data = []
+#             for doctor in doctors:
+#                 slots = self.get_available_slots(doctor)
+#                 doctor_data.append({
+#                     "d_id": doctor.d_id,
+#                     "d_name": doctor.d_name,
+#                     "d_department": str(doctor.d_department),
+#                     "d_phn_no": doctor.d_phn_no,
+#                     "d_email": doctor.d_email,
+#                     "d_ward_no": doctor.d_ward_no,
+#                     "d_start_time": doctor.d_start_time.strftime('%I:%M %p'),
+#                     "d_end_time": doctor.d_end_time.strftime('%I:%M %p'),
+#                     "d_education_info": doctor.d_education_info,
+#                     "d_certifications": doctor.d_certifications,
+#                     "d_available_days": doctor.d_available_days,
+#                     "d_available_slots": slots,
+#                 })
+
+#             context["data"] = doctor_data
+#         except Exception as e:
+#             return Response({"error": "An error occurred", "details": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+#         return Response(context, status=status.HTTP_200_OK)
+
+#     def get_available_slots(self, doctor):
+#         today = now().date()
+#         start_time = datetime.combine(today, doctor.d_start_time)
+#         end_time = datetime.combine(today, doctor.d_end_time)
+#         slots = []
+#         hours_worked = 0
+
+#         if doctor.d_start_time > doctor.d_end_time:
+#             end_time += timedelta(days=1)
+
+#         while start_time < end_time:
+#             time_str = start_time.strftime('%I:%M %p')
+#             if hours_worked > 0 and hours_worked % 4 == 0:
+#                 slots.append({"time": time_str, "status": "Break"})
+#                 start_time += timedelta(hours=1)
+#                 hours_worked = 0
+#                 continue
+#             slots.append({"time": time_str, "status": "Available"})
+#             start_time += timedelta(hours=1)
+#             hours_worked += 1
+
+#         return slots
+
+
+class DoctorAvailabilityDetailView(APIView):
+    def get(self, request, pk=None, doctor_id=None):
+        context = {
+            "success": 1,
+            "message": "Data fetched successfully.",
+            "data": {}
         }
 
         try:
             if pk:
-                # Fetch a single doctor
                 doctor = get_object_or_404(DoctorAvailability, pk=pk)
                 serializer = DoctorAvailabilitySerializer(doctor)
                 slots = self.get_available_slots(doctor)
                 context["data"] = serializer.data
                 context["availability_slots"] = slots
-
             elif doctor_id:
-                # Fetch a single doctor for availability slots
                 doctor = get_object_or_404(DoctorAvailability, id=doctor_id)
                 slots = self.get_available_slots(doctor)
                 context["data"] = {"doctor": doctor.d_name, "available_slots": slots}
-
             else:
-                # Fetch all doctors
-                doctors = DoctorAvailability.objects.all()
-                if not doctors:
-                    return Response({"error": "No doctors found"}, status=status.HTTP_404_NOT_FOUND)
-
-                doctor_data = []
-                for doctor in doctors:
-                    slots = self.get_available_slots(doctor)
-                    doctor_data.append({
-                       "d_id": doctor.d_id,
-                        "d_name": doctor.d_name,
-                        "d_department": str(doctor.d_department),
-                        "d_phn_no": doctor.d_phn_no,
-                        "d_email": doctor.d_email,
-                        "d_ward_no": doctor.d_ward_no,
-                        "d_start_time": doctor.d_start_time.strftime('%I:%M %p'),
-                        "d_end_time": doctor.d_end_time.strftime('%I:%M %p'),
-                        "d_education_info": doctor.d_education_info,
-                        "d_certifications": doctor.d_certifications,
-                        "d_available_days": doctor.d_available_days,  # Include available days
-                        "d_available_slots": slots  # Include slots
-                    })
-
-                context["data"] = doctor_data
-
+                return Response({"error": "Doctor identifier not provided"}, status=status.HTTP_400_BAD_REQUEST)
         except DoctorAvailability.DoesNotExist:
             return Response({"error": "Doctor not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
@@ -85,81 +204,44 @@ class DoctorAvailabilityAPIView(APIView):
 
         return Response(context, status=status.HTTP_200_OK)
 
-    # def get_available_slots(self, doctor):
-    #     today = now().date()
-    #     start_time = datetime.combine(today, doctor.d_start_time)
-    #     end_time = datetime.combine(today, doctor.d_end_time)
- 
-    #     slots = []
- 
-    #     # Handle overnight shift (PM to AM)
-    #     overnight_shift = False
-    #     if doctor.d_start_time > doctor.d_end_time:
-    #         end_time += timedelta(days=1)  # Move end_time to the next day
-    #         overnight_shift = True  # Flag for identifying PM to AM shift
- 
-    #     while start_time < end_time:
-    #         time_str = start_time.strftime('%I:%M %p')
- 
-    #         # Add break from 12 PM to 1 PM for AM → PM shifts
-    #         if not overnight_shift and time_str == "12:00 PM":
-    #             slots.append({"time": time_str, "status": "Break"})
-    #             start_time += timedelta(hours=1)  # Skip break time
- 
-    #         # Add break from 12 AM to 1 AM for PM → AM shifts
-    #         elif overnight_shift and time_str == "12:00 AM":
-    #             slots.append({"time": time_str, "status": "Break"})
-    #             start_time += timedelta(hours=1)  # Skip break time
- 
-    #         else:
-    #             slots.append({"time": time_str, "status": "Available"})
-    #             start_time += timedelta(hours=1)  # Increment slot by 1 hour
- 
-    #     return slots
-
     def get_available_slots(self, doctor):
+        # Same as in DoctorAvailabilityListView
         today = now().date()
         start_time = datetime.combine(today, doctor.d_start_time)
         end_time = datetime.combine(today, doctor.d_end_time)
-    
         slots = []
         hours_worked = 0
-    
-        # Handle overnight shift (PM to AM)
-        overnight_shift = False
+
         if doctor.d_start_time > doctor.d_end_time:
             end_time += timedelta(days=1)
-            overnight_shift = True
-    
+
         while start_time < end_time:
             time_str = start_time.strftime('%I:%M %p')
-
-            # Break for every 4 hours
             if hours_worked > 0 and hours_worked % 4 == 0:
                 slots.append({"time": time_str, "status": "Break"})
-                start_time += timedelta(hours=1)  # Break time
-                hours_worked = 0  # Reset hours_worked after break
+                start_time += timedelta(hours=1)
+                hours_worked = 0
                 continue
-
-            # Add normal time slot
             slots.append({"time": time_str, "status": "Available"})
             start_time += timedelta(hours=1)
             hours_worked += 1
-    
+
         return slots
 
-    
+
+class DoctorAvailabilityCreateView(APIView):
     def post(self, request):
         context = {
             "success": 1,
             "message": "Data saved successfully.",
             "data": {}
         }
+
         try:
             serializer = DoctorAvailabilitySerializer(data=request.data)
             if not serializer.is_valid():
                 raise ValidationError(serializer.errors)
-            print(serializer.errors)
+
             doctor = serializer.save()
             context["data"] = DoctorAvailabilitySerializer(doctor).data
         except ValidationError as e:
@@ -169,15 +251,17 @@ class DoctorAvailabilityAPIView(APIView):
             context["success"] = 0
             context["message"] = str(e)
 
-        print(request.data)
         return Response(context, status=status.HTTP_201_CREATED if context["success"] else status.HTTP_400_BAD_REQUEST)
 
+
+class DoctorAvailabilityUpdateView(APIView):
     def put(self, request, pk):
         context = {
             "success": 1,
             "message": "Data updated successfully.",
             "data": {}
         }
+
         try:
             doctor = get_object_or_404(DoctorAvailability, pk=pk)
             serializer = DoctorAvailabilitySerializer(doctor, data=request.data, partial=True)
@@ -194,6 +278,7 @@ class DoctorAvailabilityAPIView(APIView):
             context["message"] = str(e)
 
         return Response(context, status=status.HTTP_200_OK if context["success"] else status.HTTP_400_BAD_REQUEST)
+
 
 class DoctorSearchView(APIView):
     def get(self, request, *args, **kwargs):

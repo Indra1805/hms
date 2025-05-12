@@ -8,6 +8,7 @@ from core.exceptions import SerializerError
 from django.db.models import Q
 from django.core.cache import cache
 from django.db import transaction
+from rec_app.models import ProgressNote
 
 # Create your views here.
 
@@ -119,6 +120,9 @@ class GetPatientAPIView(APIView):
             total_inpatients = models.Patient.objects.filter(appointment_type='inpatient').count()
             total_outpatients = models.Patient.objects.filter(appointment_type='outpatient').count()
             total_casualty = models.Patient.objects.filter(appointment_type='casualty').count()
+            total_patients = models.Patient.objects.all().count()
+            critical_cases = ProgressNote.objects.filter(status="critical").count()
+
 
             if appointment_type and not any([search, gender, date, doctor_name, patient_id]):
                 count = patients.count()
@@ -133,7 +137,9 @@ class GetPatientAPIView(APIView):
                     "total_counts": {
                         "inpatients": total_inpatients,
                         "outpatients": total_outpatients,
-                        "casualty": total_casualty
+                        "casualty": total_casualty,
+                        "total_patients":total_patients,
+                        "critical_cases":critical_cases
                     }
                 }
         except Exception as e:

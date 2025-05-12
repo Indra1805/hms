@@ -44,4 +44,8 @@ urlpatterns = [
     path('create-multiple-risk-factors/', CreateMultipleRiskFactorsAPIView.as_view(), name='create-multiple-risk-factors'),
     path('get-multiple-risk-factors/<str:patient_id>/', RetrieveMultipleRiskFactorsAPIView.as_view(), name='get-multiple-risk-factors'),
     path('update-multiple-risk-factors/<str:patient_id>/', UpdateMultipleRiskFactorsAPIView.as_view(), name='get-multiple-risk-factors'),
+
+    path('prescription/',PrescriptionListAPIView.as_view(),name='prescriptions'),
+    path('prescription/<str:patient_id>/',PrescriptionDetailView.as_view(),name='prescription-detail'),
+    path('vitals/<str:patient_id>/',VitalsDetailAPIView.as_view(),name='vitals-detail')
 ]

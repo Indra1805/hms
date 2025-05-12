@@ -26,7 +26,7 @@ class AppointmentCreateAPIView(APIView):
             "message": "Data saved successfully",
             "data": {}
         }
- 
+
         try:
             validator = validators.AppointmentValidator(data=request.data)
             if not validator.is_valid():

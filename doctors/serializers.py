@@ -22,8 +22,8 @@ class DoctorAvailabilitySerializer(serializers.ModelSerializer):
     def validate_d_department(self, value):
         """Convert department name to ID"""
         try:
-            department = speciality.objects.get(name=value)
-        except speciality.DoesNotExist:
+            department = Department.objects.get(name=value)
+        except Department.DoesNotExist:
             raise serializers.ValidationError("Department not found")
         return department  # Return department instance instead of name
 

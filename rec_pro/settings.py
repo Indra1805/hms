@@ -41,6 +41,8 @@ INSTALLED_APPS = [
     'patients',
     'doctors',
     'appointments',
+    'pharmacy',
+    'labs',
     'rest_framework',
     'corsheaders'
 ]

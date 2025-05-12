@@ -3,22 +3,17 @@ from .models import *
 
 # Register your models here.
 
-@admin.register(StaffUsers)
-class StaffUsersAdmin(admin.ModelAdmin):
-    list_display = ['id','name']
-
-
 @admin.register(Vitals)
 class VitalsAdmin(admin.ModelAdmin):
     list_display = ['category','patient','recorded_by','blood_pressure','bmi','grbs','cvs','cns','respiratory_rate','weight','height','summary','report','created_at','last_updated_at']
 
-@admin.register(LabResult)
-class LabResultAdmin(admin.ModelAdmin):
-    list_display = ['category','patient','title','summary','report','created_at','last_updated_at']
+# @admin.register(LabResult)
+# class LabResultAdmin(admin.ModelAdmin):
+#     list_display = ['category','patient','title','summary','report','created_at','last_updated_at']
 
-@admin.register(Imaging)
-class ImagingAdmin(admin.ModelAdmin):
-    list_display = ['patient','scan_type','summary','report','created_at','last_updated_at']
+# @admin.register(Imaging)
+# class ImagingAdmin(admin.ModelAdmin):
+#     list_display = ['patient','scan_type','summary','report','created_at','last_updated_at']
 
 @admin.register(Prescription)
 class PrescriptionAdmin(admin.ModelAdmin):
@@ -26,7 +21,7 @@ class PrescriptionAdmin(admin.ModelAdmin):
 
 @admin.register(ServiceProcedure)
 class ServiceProcedureAdmin(admin.ModelAdmin):
-    list_display = ['patient','procedure_name','procedure_notes','summary','report','created_at','last_updated_at']
+    list_display = ['patient','title','summary','report','created_at','last_updated_at']
 
 
 # add notes

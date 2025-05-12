@@ -1,53 +1,56 @@
 from rest_framework import serializers
-from .models import Vitals, LabResult,Imaging,Prescription,ServiceProcedure
+from .models import Vitals,Prescription,ServiceProcedure
 from patients.models import Patient
+from doctors.models import DoctorAvailability
 from .models import NursingNotes,ProgressNote,TreatmentChart, PainAssessment,InitialAssessment,CarePlanFeedback,RiskFactor1,RiskFactor2,RiskFactor3,RiskFactor4
 from .validators import validate_character_of_service,validate_factors_improving_experience,RiskFactor1Validator,RiskFactor2Validator,RiskFactor3Validator,RiskFactor4Validator
 
 
 # serializers for Adding Records
 
-# class VitalsSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = Vitals
-#         fields = '__all__'
-
 class VitalsSerializer(serializers.ModelSerializer):
     patient = serializers.PrimaryKeyRelatedField(queryset=Patient.objects.all(), required=False) 
+    doctor_name = serializers.CharField(source='patient.doctor_name', read_only=True)
 
     class Meta:
         model = Vitals
-        fields = ['patient', 'blood_pressure', 'bmi', 'grbs','cns','cvs', 'respiratory_rate', 'weight', 'height','category','summary','report','created_at','last_updated_at']
+        fields = ['patient', 'doctor_name','blood_pressure', 'bmi', 'grbs','cns','cvs', 'respiratory_rate', 'weight', 'height','category','summary','report','created_at','last_updated_at']
 
-class LabResultSerializer(serializers.ModelSerializer):
-    patient = serializers.PrimaryKeyRelatedField(queryset=Patient.objects.all(), required=False) 
-    class Meta:
-        model = LabResult
-        fields = ['patient','title','category','summary','report','created_at','last_updated_at']
+# class LabResultSerializer(serializers.ModelSerializer):
+#     patient = serializers.PrimaryKeyRelatedField(queryset=Patient.objects.all(), required=False) 
+#     doctor_name = serializers.CharField(source='patient.doctor_name', read_only=True)
+#     class Meta:
+#         model = LabResult
+#         fields = '__all__'
 
-class ImagingSerializer(serializers.ModelSerializer):
-    patient = serializers.PrimaryKeyRelatedField(queryset=Patient.objects.all(), required=False) 
-    class Meta:
-        model = Imaging
-        fields = ['patient','sacn_type','category','summary','report','created_at','last_updated_at']
+# class ImagingSerializer(serializers.ModelSerializer):
+#     patient = serializers.PrimaryKeyRelatedField(queryset=Patient.objects.all(), required=False) 
+#     doctor_name = serializers.CharField(source='patient.doctor_name', read_only=True)
+
+#     class Meta:
+#         model = Imaging
+#         fields = ['patient','doctor_name','sacn_type','category','summary','report','created_at','last_updated_at']
 
 class PrescriptionSerializer(serializers.ModelSerializer):
     patient = serializers.PrimaryKeyRelatedField(queryset=Patient.objects.all(), required=False) 
+    doctor_name = serializers.CharField(source='patient.doctor_name', read_only=True)
+    patient_name = serializers.CharField(source='patient.patient_name')
     class Meta:
         model = Prescription
-        fields = ['patient','medication_name','dosage','duration','category','summary','report','created_at','last_updated_at']
+        fields = ['patient','patient_name','doctor_name','medication_name','dosage','quantity','status','duration','category','summary','report','created_at','last_updated_at']
 
 class ServiceProcedureSerializer(serializers.ModelSerializer):
     patient = serializers.PrimaryKeyRelatedField(queryset=Patient.objects.all(), required=False) 
+    doctor_name = serializers.CharField(source='patient.doctor_name', read_only=True)
     class Meta:
         model = ServiceProcedure
-        fields = ['patient','procedure_name','procedure_notes','category','summary','report','created_at','last_updated_at']
+        fields = ['patient','doctor_name','title','category','summary','report','created_at','last_updated_at']
 
 def get_serializer_class(record_type):
     serializer_mapping = {
         "vitals": VitalsSerializer,
-        "lab_results": LabResultSerializer,
-        "imaging":ImagingSerializer,
+        # "lab_results": LabResultSerializer,
+        # "imaging":ImagingSerializer,
         "prescription":PrescriptionSerializer,
         "serviceprocedure":ServiceProcedureSerializer
     }

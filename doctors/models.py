@@ -5,7 +5,7 @@ from django.core.exceptions import ValidationError
 
 
 
-class speciality(models.Model):
+class Department(models.Model):
     name = models.CharField(max_length=40)
 
     def __str__(self):
@@ -27,7 +27,7 @@ DAYS_OF_WEEK = [
 class DoctorAvailability(models.Model):
     d_id = models.CharField(max_length=10, unique=True, blank=True, null=True)
     d_name = models.CharField(max_length=255)
-    d_department = models.ForeignKey(speciality,on_delete=models.CASCADE)
+    d_department = models.ForeignKey(Department,on_delete=models.CASCADE)
     d_phn_no = models.CharField(max_length=10,unique=True)
     d_email = models.EmailField(max_length=255)
     d_ward_no = models.CharField(max_length=200)
@@ -39,6 +39,7 @@ class DoctorAvailability(models.Model):
     d_end_time = models.TimeField()
     d_education_info = models.TextField(max_length=200 ,blank=True,null=True)
     d_certifications = models.TextField(max_length=200, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
     
     def save(self, *args, **kwargs):
         if not self.d_id:

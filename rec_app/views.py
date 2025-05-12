@@ -14,8 +14,9 @@ from rest_framework.exceptions import ValidationError, NotFound
 from django.utils import timezone
 from rest_framework import status
 from patients.models import Patient
-from .models import (MedicalRecord,ProgressNote,PainAssessment,InitialAssessment,RiskFactor1,RiskFactor2,RiskFactor3,RiskFactor4)
-from .serializers import (VitalsSerializer,LabResultSerializer,ImagingSerializer,PrescriptionSerializer,ServiceProcedureSerializer,NursingNotesSerializer,ProgressNoteSerializer,TreatmentChartSerializer,PainAssessmentSerializer,
+from pharmacy.models import Medication
+from .models import (MedicalRecord,Prescription,Vitals,ProgressNote,PainAssessment,TreatmentChart,InitialAssessment,RiskFactor1,RiskFactor2,RiskFactor3,RiskFactor4)
+from .serializers import (VitalsSerializer,PrescriptionSerializer,ServiceProcedureSerializer,NursingNotesSerializer,ProgressNoteSerializer,TreatmentChartSerializer,PainAssessmentSerializer,
                           InitialAssessmentSerializer,CarePlanFeedbackSerializer,RiskFactor1Serializer,RiskFactor2Serializer,
                           RiskFactor3Serializer,RiskFactor4Serializer)
 from django.views.decorators.csrf import csrf_exempt
@@ -31,8 +32,8 @@ from django.core.exceptions import ObjectDoesNotExist
 def get_serializer_class(record_type):
     serializer_classes = {
         "vitals": VitalsSerializer,
-        "lab_results": LabResultSerializer,
-        "imaging": ImagingSerializer,
+        # "lab_results": LabResultSerializer,
+        # "imaging": ImagingSerializer,
         "prescription": PrescriptionSerializer,
         "service_procedure": ServiceProcedureSerializer,
     }
@@ -159,8 +160,8 @@ class MedicalRecordUpdateAPIView(APIView):
             # Determine the correct model & serializer
             serializer_class = {
                 "vitals": VitalsSerializer,
-                "lab_results": LabResultSerializer,
-                "imaging": ImagingSerializer,
+                # "lab_results": LabResultSerializer,
+                # "imaging": ImagingSerializer,
                 "prescription": PrescriptionSerializer,
                 "services_procedures": ServiceProcedureSerializer,
             }.get(record_type)
@@ -199,6 +200,195 @@ class MedicalRecordUpdateAPIView(APIView):
             context["message"] = str(e)
             return Response(context, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
+
+class VitalsDetailAPIView(APIView):
+    def get(self, request, patient_id):
+        context = {
+            "success":1,
+            "message":"Vitals fetched successfully",
+            "data":{}
+        }
+
+        try:
+            patient = get_object_or_404(Patient, patient_id=patient_id)
+            vitals = Vitals.objects.filter(patient=patient)
+
+            serializer = VitalsSerializer(vitals, many=True)
+            context["data"]=serializer.data
+
+            return Response(context, status=status.HTTP_200_OK)
+        except Exception as e:
+            context["success"]=0
+            context["message"]=str(e)
+            return Response(context, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class PrescriptionListAPIView(APIView):
+    def get(self, request):
+        context = {
+            "success": 1,
+            "message": "Prescription data fetched successfully",
+            "data": []
+        }
+
+        try:
+            # Extract query parameters
+            patient_id = request.query_params.get('patient_id')
+            patient_name = request.query_params.get('patient_name')
+            phno = request.query_params.get('phno')
+            appointment_type = request.query_params.get('appointment_type')
+
+            # Build filters using Q objects
+            filters = Q()
+            if patient_id:
+                filters &= Q(patient__patient_id__icontains=patient_id)
+            if patient_name:
+                filters &= Q(patient__patient_name__icontains=patient_name)
+            if phno:
+                filters &= Q(patient__phno__icontains=phno)
+            if appointment_type:
+                filters &= Q(patient__appointment_type__iexact=appointment_type)
+
+            prescriptions = Prescription.objects.filter(filters)
+
+            prescription_data = []
+            for pres in prescriptions:
+                data = {
+                    "patient_id": pres.patient.patient_id,
+                    "patient_name": pres.patient.patient_name,
+                    "doctor_name": pres.patient.doctor_name,
+                    "medication_name": pres.medication_name,
+                    "dosage": pres.dosage,
+                    "summary": pres.summary,
+                    "appointment_type": pres.patient.appointment_type,
+                    "phone_number": pres.patient.phno,
+                    "status":pres.status,
+                    "quantity":pres.quantity
+                }
+                prescription_data.append(data)
+
+            context["data"] = prescription_data
+
+        except Exception as e:
+            context["success"] = 0
+            context["message"] = str(e)
+            return Response(context, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response(context, status=status.HTTP_200_OK)
+    
+
+class PrescriptionDetailView(APIView):
+    def get(self, request, patient_id):
+        context = {
+            "success": 1,
+            "message": "Fetched successfully",
+            "data": {}
+        }
+
+        try:
+            patient = Patient.objects.get(patient_id=patient_id)
+            prescriptions = Prescription.objects.filter(patient=patient)
+
+            serialized = []
+            for pres in prescriptions:
+                # Try to find a matching medication
+                try:
+                    medication = Medication.objects.get(medication_name=pres.medication_name)
+                    stock_quantity = medication.stock_quantity
+                except Medication.DoesNotExist:
+                    stock_quantity = None
+
+                # Build a dictionary manually (you could also customize a serializer)
+                serialized.append({
+                    "id": pres.id,
+                    "medication_name": pres.medication_name,
+                    "dosage": pres.dosage,
+                    "quantity": pres.quantity,
+                    "duration": pres.duration,
+                    "category": pres.category,
+                    "summary": pres.summary,
+                    "status":pres.status,
+                    "report": pres.report.url if pres.report else None,
+                    "created_at": pres.created_at,
+                    "last_updated_at": pres.last_updated_at,
+                    "stock_quantity": stock_quantity,
+                    "doctor_name":pres.patient.doctor_name
+                })
+
+            context["data"] = serialized
+            return Response(context, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            context["success"] = 0
+            context["message"] = str(e)
+            return Response(context, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+    def put(self, request, patient_id):
+        context = {
+            "success": 1,
+            "message": messages.DATA_UPDATED,
+            "data": []
+        }
+ 
+        try:
+            patient = Patient.objects.get(patient_id=patient_id)
+            data = request.data
+ 
+            prescriptions_data = data if isinstance(data, list) else [data]
+ 
+            with transaction.atomic():
+                updated_prescriptions = []
+ 
+                for item in prescriptions_data:
+                    medication_name = item.get("medication_name")
+ 
+                    if not medication_name:
+                        raise ValidationError("Each prescription must include 'medication_name'.")
+ 
+                    try:
+                        prescription = Prescription.objects.get(
+                            patient=patient,
+                            medication_name__iexact=medication_name
+                        )
+                    except Prescription.DoesNotExist:
+                        raise ValidationError(f"Prescription for '{medication_name}' not found.")
+ 
+                    new_quantity = int(item.get("quantity", prescription.quantity or 0))
+ 
+                    try:
+                        medication = Medication.objects.get(medication_name__iexact=medication_name)
+ 
+                        if medication.stock_quantity is None or medication.stock_quantity == 0:
+                            item['status'] = 'pending'
+ 
+                        elif new_quantity > medication.stock_quantity:
+                            item['status'] = 'pending'
+ 
+                        else:
+                            # Sufficient stock, proceed and deduct
+                            medication.stock_quantity -= new_quantity
+                            item['status'] = 'completed'
+                            medication.save()
+ 
+                    except Medication.DoesNotExist:
+                        item['status'] = 'pending'
+ 
+                    # Update prescription regardless of status
+                    serializer = PrescriptionSerializer(prescription, data=item, partial=True)
+                    if not serializer.is_valid():
+                        raise ValidationError(serializer.errors)
+ 
+                    updated = serializer.save()
+                    updated_prescriptions.append(PrescriptionSerializer(updated).data)
+ 
+                context["data"] = updated_prescriptions[0] if isinstance(data, dict) else updated_prescriptions
+                return Response(context, status=status.HTTP_200_OK)
+ 
+        except Exception as e:
+            context["success"] = 0
+            context["message"] = str(e)
+            return Response(context, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 # Add Notes
 
@@ -265,7 +455,7 @@ class NursingNotesListAPIView(APIView):
         if not nursing_notes.exists():
             return Response({
                 "success": 0,
-                "message": "No nursing notes found for this patient.",
+                "message": f"No nursing notes found for this patient ID {patient_id}.",
                 "data": []
             }, status=status.HTTP_404_NOT_FOUND)
 
@@ -361,7 +551,7 @@ class GetProgressNoteAPIView(APIView):
             progress_notes = models.ProgressNote.objects.filter(patient=patient)
 
             if not progress_notes.exists():
-                raise NotFound("No progress notes found for this patient.")
+                raise NotFound(f"No progress notes found for this patient ID {patient_id}.")
 
             serializer = ProgressNoteSerializer(progress_notes, many=True)
             context['data'] = serializer.data
@@ -442,7 +632,7 @@ class ProgressNoteDetailView(APIView):
             progress_notes = models.ProgressNote.objects.filter(patient=patient)
 
             if not progress_notes.exists():
-                raise NotFound("No progress notes found for this patient.")
+                raise NotFound(f"No progress notes found for this patient ID {patient_id}.")
 
             serializer = ProgressNoteSerializer(progress_notes, many=True)
             context['data'] = serializer.data
@@ -574,152 +764,91 @@ class ProgressNoteDetailView(APIView):
 #         return Response(context, status=status.HTTP_201_CREATED if context["success"] else status.HTTP_400_BAD_REQUEST)
 
 
-from .models import TreatmentChart
 
 class TreatmentChartAPIView(APIView):
-
     def get(self, request):
-
         return Response(
-
             {"message": "Use POST to create a treatment chart"},
-
             status=status.HTTP_200_OK
-
         )
- 
     def post(self, request):
-
         context = {
-
             "success": 1,
-
             "message": "Data saved successfully",
-
             "data": {}
-
         }
-
         try:
-
             validator = TreatmentChartValidator(data=request.data)
-
             if not validator.is_valid():
-
                 raise SerializerError(validator.errors)
- 
             req_params = validator.validated_data
  
             # Debugging: Print received patient ID
-
             print("Received Patient ID:", req_params['patient'])
  
             # Check if patient exists
-
             try:
-
                 patient = Patient.objects.get(patient_id=req_params['patient'])
-
             except Patient.DoesNotExist:
-
                 return Response(
-
                     {
-
                         "success": 0,
-
                         "message": f"No patient found with ID {req_params['patient']}. Please check and try again.",
-
                         "data": {}
-
                     },
-
                     status=status.HTTP_400_BAD_REQUEST
-
                 )
  
             # Ensure request contains multiple medicines
-
             medicines_data = req_params.get("medicines", [])  # Expecting a list of medicines
 
             if not medicines_data:
-
                 return Response(
-
                     {
-
                         "success": 0,
-
                         "message": "Medicines list is required.",
-
                         "data": {}
-
                     },
-
                     status=status.HTTP_400_BAD_REQUEST
-
                 )
  
             # Creating multiple TreatmentChart entries
-
             treatment_entries = [
-
                 TreatmentChart(
-
                     patient=patient,
-
                     medicine_name=medicine["medicine_name"],
-
                     hrs_drops_mins=medicine["hrs_drops_mins"],
-
                     dose=medicine["dose"],
-
                     time=medicine["time"],
-
                     medicine_details=medicine["medicine_details"],
-
                 )
-
                 for medicine in medicines_data
-
             ]
 
             TreatmentChart.objects.bulk_create(treatment_entries)
  
             # Serialize created objects
-
             serializer = TreatmentChartSerializer(treatment_entries, many=True, context={"request": request})
-
             context['data'] = {"treatment_chart_details": serializer.data}
  
         except SerializerError as e:
-
             context['success'] = 0
-
             context['message'] = str(e)
-
         except Exception as e:
-
             context['success'] = 0
-
             context['message'] = str(e)
- 
+
         return Response(context, status=status.HTTP_201_CREATED if context["success"] else status.HTTP_400_BAD_REQUEST)
  
 
 
-
-from django.shortcuts import get_object_or_404
-
 class TreatmentChartListAPIView(APIView):
-
     def get(self, request, patient_id):
         if not patient_id:
             return Response(
                 {"success": 0, "message": "patient_id is required in the URL", "data": {}},
                 status=status.HTTP_400_BAD_REQUEST
             )
-
         try:
             # Get the patient by the custom patient_id field
             patient = Patient.objects.get(patient_id=patient_id)
@@ -765,11 +894,7 @@ class TreatmentChartListAPIView(APIView):
             )
 
 
-
-
-
 class TreatmentChartUpdateAPIView(APIView):
-
     def get(self, request, patient_id):
         if not patient_id:
             return Response(
@@ -884,7 +1009,6 @@ class TreatmentChartUpdateAPIView(APIView):
         return Response(context, status=status.HTTP_200_OK if context["success"] else status.HTTP_400_BAD_REQUEST)
 
 
-
 # Pain Assessment
 
 class CreatePainAssessmentAPIView(APIView):
@@ -931,8 +1055,6 @@ class CreatePainAssessmentAPIView(APIView):
         return Response(context)
 
 
-
-
 # GET Pain Assessment
 class GetPainAssessmentAPIView(APIView):
     def get(self, request, patient_id):
@@ -951,7 +1073,7 @@ class GetPainAssessmentAPIView(APIView):
             context["message"] = "Patient not found."
         except PainAssessment.DoesNotExist:
             context["success"] = 0
-            context["message"] = "Pain assessment not found for this patient."
+            context["message"] = f"Pain assessment not found for this patient ID {patient_id}"
         except Exception as e:
             context["success"] = 0
             context["message"] = str(e)
@@ -979,7 +1101,7 @@ class UpdatePainAssessmentAPIView(APIView):
             context["message"] = "Patient not found."
         except PainAssessment.DoesNotExist:
             context["success"] = 0
-            context["message"] = "Pain assessment not found for this patient."
+            context["message"] = f"Pain assessment not found for this patient ID {patient_id}."
         except Exception as e:
             context["success"] = 0
             context["message"] = str(e)
@@ -1009,7 +1131,7 @@ class UpdatePainAssessmentAPIView(APIView):
             context["message"] = "Patient not found."
         except PainAssessment.DoesNotExist:
             context["success"] = 0
-            context["message"] = "Pain assessment not found for this patient."
+            context["message"] = f"Pain assessment not found for this patient ID {patient_id}."
         except ValueError as e:
             context["success"] = 0
             context["message"] = str(e)
@@ -1087,7 +1209,7 @@ class GetInitialAssessmentAPIView(APIView):
             context["message"] = "Patient not found."
         except InitialAssessment.DoesNotExist:
             context["success"] = 0
-            context["message"] = "Initial assessment not found for this patient."
+            context["message"] = f"Initial assessment not found for this patient ID {patient_id}."
         except Exception as e:
             context["success"] = 0
             context["message"] = str(e)
@@ -1114,7 +1236,7 @@ class UpdateInitialAssessmentAPIView(APIView):
             context["message"] = "Patient not found."
         except InitialAssessment.DoesNotExist:
             context["success"] = 0
-            context["message"] = "Initial assessment not found for this patient."
+            context["message"] = f"Initial assessment not found for this patient ID {patient_id}."
         except Exception as e:
             context["success"] = 0
             context["message"] = str(e)
@@ -1142,7 +1264,7 @@ class UpdateInitialAssessmentAPIView(APIView):
             context["message"] = "Patient not found."
         except InitialAssessment.DoesNotExist:
             context["success"] = 0
-            context["message"] = "Initial assessment not found for this patient."
+            context["message"] = f"Initial assessment not found for this patient ID {patient_id}."
         except Exception as e:
             context["success"] = 0
             context["message"] = str(e)
@@ -1475,7 +1597,7 @@ class RetrieveMultipleRiskFactorsAPIView(APIView):
                 context['data'] = risk_factors_data
             else:
                 context['success'] = 0
-                context['message'] = "No risk factor data found for this patient."
+                context['message'] = f"No risk factor data found for this patient ID {patient_id}."
 
         except Patient.DoesNotExist:
             context['success'] = 0
@@ -1562,7 +1684,7 @@ class UpdateMultipleRiskFactorsAPIView(APIView):
                 context['data'] = risk_factors_data
             else:
                 context['success'] = 0
-                context['message'] = "No risk factor data found for this patient."
+                context['message'] = f"No risk factor data found for this patient ID {patient_id}."
 
         except Patient.DoesNotExist:
             context['success'] = 0
